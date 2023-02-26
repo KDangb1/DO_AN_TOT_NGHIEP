@@ -9,25 +9,30 @@ import get_env
 import os
 import csv
 from selenium.webdriver.common.keys import Keys
+from get_logger import telegram_sendtext, get_logger_format, get_datefmt, get_logger, info_n_telegram_sendtext, error_n_telegram_sendtext
+
 
 env_dict = get_env.get_env()
 
 
 class CellphoneS_scraper:
-    def __init__(self, CellphoneS_url, bin_location, web_driver, logger, data_storage_dir):
+    def __init__(self, CellphoneS_url, bin_location, web_driver, logger, data_storage_dir, roomID, data_scraping_speed):
+        self.class_name = "CellphoneS_Crawler"
         self.CellphoneS_url = CellphoneS_url           # Google maps URL + '/search/'
         self.bin_location = bin_location               # Path to 'Firefox' broswer
         self.web_driver = web_driver                   # Path to 'geckodriver'
 
         self.logger = logger
+        self.roomID = roomID
         
         self.data_storage_dir = data_storage_dir           # Directory path to the directory containing the data
+        self.data_scraping_speed = data_scraping_speed
         
         options = Options()
         options.binary_location = self.bin_location
         # options.headless = True                       
         self.driver = webdriver.Firefox(executable_path=web_driver, service_log_path=os.devnull ,options=options)
-    
+
     
     #Close the popup banner in this(CellphoneS) page
     def close_popup_banner(self):
@@ -55,7 +60,7 @@ class CellphoneS_scraper:
 
                     if btn_show_more_element.text:
                         btn_show_more_element.click()
-                        time.sleep(random.randrange(3,5))
+                        time.sleep(self.data_scraping_speed + random.randrange(3,5))
                         #set to continue this function
                         not_show_all_items_yet = True
 
@@ -70,9 +75,8 @@ class CellphoneS_scraper:
                         break        
                 
             except Exception as e:
-                print(e)
-                
-                break
+                error_n_telegram_sendtext(logger=self.logger, message=f"{self.class_name} | show all items in page | Encounter error: {str(e)}", roomID=self.roomID)
+                raise
 
 
     def get_all_items_in_page(self):
@@ -91,15 +95,18 @@ class CellphoneS_scraper:
                 product_info = [product_name, product_src_image, product_price_new, product_price_old]
                 list_products.append(product_info)
                 
-            except:
-                pass
+            except Exception as e:
+                error_n_telegram_sendtext(logger=self.logger, message=f"{self.class_name} | show all items in page | Encounter error: {str(e)}", roomID=self.roomID)
+                raise
             
         df_products = pd.DataFrame(list_products, columns =["product_name", "product_src_image", "product_price_new", "product_price_old"])
         return df_products
 
-    def save_crawled_data(self, df_products, columns = ["product_name", "product_src_image", "product_price_new", "product_price_old"]):
+    def save_crawled_data(self, df_products, category, columns = ["product_name", "product_src_image", "product_price_new", "product_price_old"]):
         
-        df_products.to_csv(f"{self.data_storage_dir}/CellphoneS_mobile.csv", index=False, columns=columns, mode="w")
+        df_products.to_csv(f"{self.data_storage_dir}/CellphoneS_{category}.csv", index=False, columns=columns, mode="w")
+        
+        info_n_telegram_sendtext(logger=self.logger, message=f"{self.class_name} | Collect {category} | {len(df_products)} items", roomID=self.roomID)
     """
     
     """ 
@@ -110,30 +117,25 @@ class CellphoneS_scraper:
         """
         
         self.driver.get(f'{self.CellphoneS_url}{category}.html')
-        time.sleep(random.randrange(5,7))
+        time.sleep(self.data_scraping_speed + random.randrange(5,7))
         #Show all phones in this(CellphoneS) page
         self.show_all_items_in_this_page()
         try:
             df_all_items_in_page = self.get_all_items_in_page()
-            #Save data
-            print(df_all_items_in_page)
+
             self.save_crawled_data(df_products=df_all_items_in_page)
-            #logging
-            print("Success")
-        except Exception as e:
             
-            #logging
-            print("error")
-            pass
+        except Exception as e:
+            error_n_telegram_sendtext(logger=self.logger, message=f"{self.class_name} | Collect {category} | Encounter error: {str(e)}", roomID=self.roomID)
+            raise
         
-    
-    
+
     def mobile_collector(self):
         #Chat bot send message to chat box logging run time
         
         #Go to the phone sales page
         self.driver.get(f'{self.CellphoneS_url}mobile.html')
-        time.sleep(random.randrange(5,7))
+        time.sleep(self.data_scraping_speed + random.randrange(5,7))
         #Show all phones in this(CellphoneS) page
         self.show_all_items_in_this_page()
         try:
@@ -148,157 +150,4 @@ class CellphoneS_scraper:
             #logging
             print("error")
             pass
-            
-    """
-    def laptop_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}laptop.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def tablet_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}tablet.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def watch_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}do-choi-cong-nghe.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-
-    def audio_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}thiet-bi-am-thanh.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def smarthome_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}nha-thong-minh.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def accessory_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}phu-kien.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def screen_pc_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}may-tinh-de-ban.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-    
-    def television_collector(self):
-        #Chat bot send message to chat box logging run time
-        
-        #Go to the phone sales page
-        self.driver.get(f'{self.CellphoneS_url}tivi.html')
-        #Show all phones in this(CellphoneS) page
-        self.show_all_items_in_this_page()
-        try:
-            
-            #Save data
-            
-            #logging
-            pass
-        except Exception as e:
-            
-            #logging
-            pass
-            
-        """
+  
