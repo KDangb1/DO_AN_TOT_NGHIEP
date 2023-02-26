@@ -1,0 +1,2 @@
+# crawl some categorys in cellphoneS ecommerce page
+python .\main_custom.py -c "mobile, laptop, tablet, do-choi-cong-nghe, thiet-bi-am-thanh, nha-thong-minh, phu-kien, may-tinh-de-ban, tivi" -s 0

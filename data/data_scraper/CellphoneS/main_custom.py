@@ -2,6 +2,8 @@ import argparse
 from cellphoneS_scraper import CellphoneS_scraper
 import get_env
 from get_logger import telegram_sendtext, get_logger_format, get_datefmt, get_logger, info_n_telegram_sendtext, error_n_telegram_sendtext
+import time
+import random
 
 
 env_dict = get_env.get_env()
@@ -21,7 +23,7 @@ datefmt = get_datefmt()
 # Define argument parser
 parser = argparse.ArgumentParser(description='Crawl Data on CellphoneS')
 
-parser.add_argument('-c', '--categorys', dest='categorys', help='Categorys crawled, i.e. mobile, laptop, tablet, watch, audio, smarthome, accessory, screen_pc, tv', type=str)
+parser.add_argument('-c', '--categorys', dest='categorys', help='Categorys crawled, i.e. mobile, laptop, tablet, do-choi-cong-nghe, thiet-bi-am-thanh, nha-thong-minh, phu-kien, may-tinh-de-ban, tivi', type=str)
 
 parser.add_argument('-s', '--speed', dest='speed', help='data scraping speed, fastest: 0, slowest: 4. Default: 0', type=int, default=0)
 
@@ -36,8 +38,10 @@ if __name__ == "__main__":
     
     for category in categoryList:
         try:
+            print("test: load new items step")
             cellphoneS_scraper.collect_products_by_category(category)
-            
+
+            time.sleep(random.randrange(10,15))
         except Exception as e:
             print(f"{str(e)}")
             
